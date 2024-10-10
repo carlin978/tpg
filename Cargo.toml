@@ -1,9 +1,11 @@
 [package]
 name = "tpg"
 version = "0.0.1"
+license = "MPL-2.0"
 edition = "2021"
 
 [dependencies]
-clap = "4.5.19"
+clap = { version = "4.5.19", features = ["derive"] }
+colored = "2.1.0"
 pgp = "0.14.0"
 rand = "0.8.5"
