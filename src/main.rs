@@ -13,9 +13,10 @@ use std::{env, fs};
 mod cli;
 use cli::{Cli, Commands};
 mod crypt;
-use crypt::{gen_priv_key, read_priv_key};
+use crypt::{encrypt_text_to_binary, gen_priv_key, read_priv_key};
 
 fn main() {
+    let cwd = env::current_dir().unwrap();
     //get cli args
     let cli = Cli::parse();
     //match command
@@ -28,7 +29,7 @@ fn main() {
                 //
             } else {
                 let key = gen_priv_key("Test", "test@example.com");
-                let mut file_path = env::current_dir().unwrap();
+                let mut file_path = cwd.clone();
                 file_path.push(file);
                 println!("Path: {}", file_path.display());
                 fs::write(
@@ -40,27 +41,23 @@ fn main() {
                 .expect("Failed to Write");
             }
         }
-        Commands::Load { file, public_only } => {
-            if *public_only {
+        Commands::Encrypt { file, text, public } => {
+            if *public {
                 //
             } else {
-                let mut file_path = env::current_dir().unwrap();
+                let mut file_path = cwd.clone();
                 file_path.push(file);
                 println!("Path: {}", file_path.display());
                 if file_path.exists() {
                     let data = fs::read(file_path.as_path()).expect("Failed to read file");
                     let key = read_priv_key(data).expect("Failed to read private key");
-                    println!("Success!");
-                    let encrypted = key
-                        .encrypt(thread_rng(), "Test String".as_bytes(), EskType::V3_4)
-                        .expect("Failed to Encrypt");
-                    match encrypted {
-                        PkeskBytes::Rsa { mpi } => {
-                            let mut file_path = env::current_dir().unwrap();
-                            file_path.push("encryption");
-                            fs::write(file_path.as_path(), mpi.as_bytes());
+                    match encrypt_text_to_binary(key.into(), text.clone()) {
+                        Ok(encrypted) => {
+                            let mut file_path = cwd.clone();
+                            file_path.push("encrypted");
+                            fs::write(file_path.as_path(), encrypted.as_slice());
                         }
-                        _ => println!("{}", "Unknown encryption method".red()),
+                        Err(err) => println!("{}", err.red()),
                     }
                 }
             }

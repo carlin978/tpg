@@ -2,8 +2,8 @@ use std::io::Read;
 
 use pgp::composed::{key::SecretKeyParamsBuilder, KeyType, SignedSecretKey};
 use pgp::crypto::{hash::HashAlgorithm, sym::SymmetricKeyAlgorithm};
-use pgp::types::CompressionAlgorithm;
-use pgp::Deserializable;
+use pgp::types::{CompressionAlgorithm, EskType, PkeskBytes, PublicKeyTrait};
+use pgp::{Deserializable, SignedPublicKey};
 use rand::thread_rng;
 use smallvec::*;
 
@@ -36,4 +36,15 @@ pub fn gen_priv_key(name: &str, email: &str) -> SignedSecretKey {
 
 pub fn read_priv_key(data: Vec<u8>) -> Result<SignedSecretKey, pgp::errors::Error> {
     SignedSecretKey::from_bytes(data.as_slice())
+}
+
+pub fn encrypt_text_to_binary(key: SignedPublicKey, text: String) -> Result<Vec<u8>, String> {
+    let encrypted = match key.encrypt(thread_rng(), text.as_bytes(), EskType::V3_4) {
+        Ok(val) => val,
+        Err(err) => return Err(err.to_string()),
+    };
+    match encrypted {
+        PkeskBytes::Rsa { mpi } => Ok(mpi.as_bytes().into()),
+        _ => Err("Unknown encryption method".into()),
+    }
 }

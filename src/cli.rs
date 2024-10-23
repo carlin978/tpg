@@ -21,12 +21,14 @@ pub enum Commands {
         #[arg(long)]
         public_only: bool,
     },
-    //Load PGP
-    Load {
+    ///Encrypt Text
+    Encrypt {
         ///Key file
         file: String,
+        ///Text to be encrypted
+        text: String,
         ///Load a public key instead
         #[arg(long)]
-        public_only: bool,
+        public: bool,
     },
 }
