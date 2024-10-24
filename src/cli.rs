@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 
@@ -12,27 +12,37 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     ///Show License and Copyright info
-    License{
+    License {
         ///Show full License text
         #[arg(long)]
-        full: bool
+        full: bool,
     },
     ///Generate a PGP key
     Generate {
-        ///Output file
-        file: String,
-        ///Don't generate a private key
-        #[arg(long)]
-        public_only: bool,
+        ///Name for key identification
+        #[arg(short, long)]
+        name: String,
+        ///Email for key identification
+        #[arg(short, long)]
+        email: String,
+        ///ASCII Armor the output
+        #[arg(short, long)]
+        armor: bool,
+        ///File to output the generated key to
+        #[arg(short, long)]
+        output: PathBuf,
     },
     ///Encrypt Text
     Encrypt {
         ///Key file
-        file: String,
+        file: PathBuf,
         ///Text to be encrypted
         text: String,
-        ///Load a public key instead
-        #[arg(long)]
-        public: bool,
+        ///ASCII Armor the output
+        #[arg(short, long)]
+        armor: bool,
+        ///File to output encrypted text to
+        #[arg(short, long)]
+        output: PathBuf,
     },
 }
