@@ -12,7 +12,11 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     ///Show License and Copyright info
-    License,
+    License{
+        ///Show full License text
+        #[arg(long)]
+        full: bool
+    },
     ///Generate a PGP key
     Generate {
         ///Output file

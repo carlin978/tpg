@@ -21,8 +21,12 @@ fn main() {
     let cli = Cli::parse();
     //match command
     match &cli.command {
-        Commands::License => {
-            println!(include_str!("res/notice.txt"));
+        Commands::License { full } => {
+            if *full {
+                println!(include_str!("../LICENSE"));
+            }else {
+                println!(include_str!("res/notice.txt"));
+            }
         }
         Commands::Generate { file, public_only } => {
             if *public_only {
