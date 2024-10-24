@@ -13,6 +13,7 @@ pub fn gen_priv_key(name: &str, email: &str) -> SignedSecretKey {
         .key_type(KeyType::Rsa(2048))
         .can_certify(false)
         .can_sign(true)
+        .can_encrypt(true)
         .primary_user_id(format!("{} <{}>", name, email).into())
         .preferred_symmetric_algorithms(smallvec![SymmetricKeyAlgorithm::AES256])
         .preferred_hash_algorithms(smallvec![HashAlgorithm::SHA2_256])
