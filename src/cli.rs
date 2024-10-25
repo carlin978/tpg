@@ -35,14 +35,18 @@ pub enum Commands {
     ///Encrypt Text
     Encrypt {
         ///Key file
-        file: PathBuf,
+        #[arg(short, long = "key")]
+        key_file: PathBuf,
         ///Text to be encrypted
-        text: String,
+        text: Option<String>,
         ///ASCII Armor the output
         #[arg(short, long)]
         armor: bool,
         ///File to output encrypted text to
         #[arg(short, long)]
         output: PathBuf,
+        ///Input file
+        #[arg(short = 'f', long)]
+        input: Option<PathBuf>,
     },
 }

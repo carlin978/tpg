@@ -51,13 +51,14 @@ fn main() {
             }
         }
         Commands::Encrypt {
-            file,
+            key_file,
             text,
             armor,
             output,
+            input,
         } => {
             let mut file_path = cwd.clone();
-            file_path.push(file);
+            file_path.push(key_file);
             println!("Key: {}", file_path.display());
             if file_path.exists() {
                 let data = fs::read(file_path.as_path()).expect("Failed to read file");
@@ -65,7 +66,7 @@ fn main() {
                 if *armor {
                     todo!("Armor not implemented");
                 } else {
-                    match encrypt_text_to_binary(key.into(), text.clone()) {
+                    match encrypt_text_to_binary(key.into(), text.clone().unwrap()) {
                         Ok(encrypted) => {
                             let mut file_path = cwd.clone();
                             file_path.push(output);
