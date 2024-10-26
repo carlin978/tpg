@@ -9,7 +9,7 @@ use std::{env, fs};
 mod cli;
 use cli::{Cli, Commands};
 mod crypt;
-use crypt::{encrypt_bytes_to_binary, encrypt_text_to_binary, gen_key, read_priv_key};
+use crypt::{encrypt_to_binary, gen_key, read_priv_key};
 
 fn main() {
     let cwd = env::current_dir().unwrap();
@@ -81,7 +81,7 @@ fn main() {
                         //     }
                         // }
                     } else if let Some(text) = text {
-                        match encrypt_text_to_binary(key.into(), text.clone()) {
+                        match encrypt_to_binary(key.into(), text.as_bytes().into()) {
                             Ok(encrypted) => {
                                 let mut file_path = cwd.clone();
                                 file_path.push(output);
