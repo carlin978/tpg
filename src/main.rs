@@ -64,22 +64,22 @@ fn main() {
                 } else {
                     if let Some(input_path) = input {
                         todo!("Broken");
-                        // let mut file_path = cwd.clone();
-                        // file_path.push(input_path);
-                        // if file_path.exists() {
-                        //     let input_content =
-                        //         fs::read(file_path).expect("Failed to read input file");
-                        //     match encrypt_bytes_to_binary(key.into(), input_content) {
-                        //         Ok(encrypted) => {
-                        //             let mut file_path = cwd.clone();
-                        //             file_path.push(output);
-                        //             println!("Output: {}", file_path.display());
-                        //             fs::write(file_path.as_path(), encrypted.as_slice())
-                        //                 .expect("Failed to Write file");
-                        //         }
-                        //         Err(err) => println!("{}", err.red()),
-                        //     }
-                        // }
+                        let mut file_path = cwd.clone();
+                        file_path.push(input_path);
+                        if file_path.exists() {
+                            let input_content =
+                                fs::read(file_path).expect("Failed to read input file");
+                            match encrypt_to_binary(key.into(), input_content) {
+                                Ok(encrypted) => {
+                                    let mut file_path = cwd.clone();
+                                    file_path.push(output);
+                                    println!("Output: {}", file_path.display());
+                                    fs::write(file_path.as_path(), encrypted.as_slice())
+                                        .expect("Failed to Write file");
+                                }
+                                Err(err) => println!("{}", err.red()),
+                            }
+                        }
                     } else if let Some(text) = text {
                         match encrypt_to_binary(key.into(), text.as_bytes().into()) {
                             Ok(encrypted) => {

@@ -55,18 +55,119 @@ pub fn read_pub_key(data: Vec<u8>) -> Result<SignedPublicKey, pgp::errors::Error
     SignedPublicKey::from_bytes(data.as_slice())
 }
 
+#[derive(Debug)]
+enum SignedPublicKeyOrSubkey<'a> {
+    Key(&'a SignedPublicKey),
+    SubKey(&'a SignedPublicSubKey),
+}
+impl PublicKeyTrait for SignedPublicKeyOrSubkey<'_> {
+    fn version(&self) -> pgp::types::KeyVersion {
+        match self {
+            Self::Key(key) => key.version(),
+            Self::SubKey(subkey) => subkey.version(),
+        }
+    }
+
+    fn fingerprint(&self) -> pgp::types::Fingerprint {
+        match self {
+            Self::Key(key) => key.fingerprint(),
+            Self::SubKey(subkey) => subkey.fingerprint(),
+        }
+    }
+
+    fn key_id(&self) -> pgp::types::KeyId {
+        match self {
+            Self::Key(key) => key.key_id(),
+            Self::SubKey(subkey) => subkey.key_id(),
+        }
+    }
+
+    fn algorithm(&self) -> pgp::crypto::public_key::PublicKeyAlgorithm {
+        match self {
+            Self::Key(key) => key.algorithm(),
+            Self::SubKey(subkey) => subkey.algorithm(),
+        }
+    }
+
+    fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        match self {
+            Self::Key(key) => key.created_at(),
+            Self::SubKey(subkey) => subkey.created_at(),
+        }
+    }
+
+    fn expiration(&self) -> Option<u16> {
+        match self {
+            Self::Key(key) => key.expiration(),
+            Self::SubKey(subkey) => subkey.expiration(),
+        }
+    }
+
+    fn verify_signature(
+        &self,
+        hash: HashAlgorithm,
+        data: &[u8],
+        sig: &pgp::types::SignatureBytes,
+    ) -> pgp::errors::Result<()> {
+        match self {
+            Self::Key(key) => key.verify_signature(hash, data, sig),
+            Self::SubKey(subkey) => subkey.verify_signature(hash, data, sig),
+        }
+    }
+
+    fn encrypt<R: rand::CryptoRng + rand::Rng>(
+        &self,
+        rng: R,
+        plain: &[u8],
+        typ: EskType,
+    ) -> pgp::errors::Result<PkeskBytes> {
+        match self {
+            Self::Key(key) => key.encrypt(rng, plain, typ),
+            Self::SubKey(subkey) => subkey.encrypt(rng, plain, typ),
+        }
+    }
+
+    fn serialize_for_hashing(&self, writer: &mut impl std::io::Write) -> pgp::errors::Result<()> {
+        match self {
+            Self::Key(key) => key.serialize_for_hashing(writer),
+            Self::SubKey(subkey) => subkey.serialize_for_hashing(writer),
+        }
+    }
+
+    fn public_params(&self) -> &pgp::types::PublicParams {
+        match self {
+            Self::Key(key) => key.public_params(),
+            Self::SubKey(subkey) => subkey.public_params(),
+        }
+    }
+}
+
+fn get_encryption_key(key: &SignedPublicKey) -> Option<SignedPublicKeyOrSubkey> {
+    if key.is_encryption_key() {
+        Some(SignedPublicKeyOrSubkey::Key(&key))
+    } else {
+        key.public_subkeys
+            .iter()
+            .find(|subkey| subkey.is_encryption_key())
+            .map_or_else(
+                || None,
+                |subkey| Some(SignedPublicKeyOrSubkey::SubKey(subkey)),
+            )
+    }
+}
+
 pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>, String> {
+    let encryption_key = match get_encryption_key(&key) {
+        Some(key) => key,
+        None => return Err("Key doesn't have encryption key".into()),
+    };
     let msg = Message::new_literal_bytes("", data.as_slice());
     let encrypted_msg = match msg.encrypt_to_keys_seipdv2(
         thread_rng(),
         SymmetricKeyAlgorithm::AES256,
         pgp::crypto::aead::AeadAlgorithm::None,
         64, //TODO: figure out a chunk_size that works
-        &[&key
-            .public_subkeys
-            .iter()
-            .find(|pk| pk.is_encryption_key())
-            .expect("expected encryption subkey")],
+        &[&encryption_key],
     ) {
         Ok(msg) => msg,
         Err(err) => return Err(err.to_string().into()),
@@ -75,18 +176,3 @@ pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>,
         .to_bytes()
         .expect("Failed to convert message to bytes"))
 }
-
-// pub fn encrypt_bytes_to_binary(key: SignedPublicKey, bytes: Vec<u8>) -> Result<Vec<u8>, String> {
-//     let encrypted_result = key.encrypt(thread_rng(), bytes.as_slice(), EskType::V6);
-//     if let Ok(encrypted) = encrypted_result {
-//         match encrypted {
-//             PkeskBytes::Rsa { mpi } => Ok(mpi.as_bytes().into()),
-//             _ => Err("Unknown/Non-supported encryption method".into()),
-//         }
-//     } else {
-//         Err(format!(
-//             "Failed to Encrypt: {}",
-//             encrypted_result.unwrap_err().to_string()
-//         ))
-//     }
-// }

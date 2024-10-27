@@ -5,6 +5,7 @@ license = "MPL-2.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
 clap = { version = "4.5.19", features = ["derive"] }
 colored = "2.1.0"
 pgp = "0.14.0"
