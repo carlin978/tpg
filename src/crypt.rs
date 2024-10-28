@@ -162,11 +162,9 @@ pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>,
         None => return Err("Key doesn't have encryption key".into()),
     };
     let msg = Message::new_literal_bytes("", data.as_slice());
-    let encrypted_msg = match msg.encrypt_to_keys_seipdv2(
+    let encrypted_msg = match msg.encrypt_to_keys_seipdv1(
         thread_rng(),
         SymmetricKeyAlgorithm::AES256,
-        pgp::crypto::aead::AeadAlgorithm::None,
-        64, //TODO: figure out a chunk_size that works
         &[&encryption_key],
     ) {
         Ok(msg) => msg,
