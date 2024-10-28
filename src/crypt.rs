@@ -15,7 +15,7 @@ use smallvec::*;
 pub fn gen_key(name: &str, email: &str) -> SignedSecretKey {
     let mut key_params = SecretKeyParamsBuilder::default();
     key_params
-        .key_type(KeyType::Ed25519)
+        .key_type(KeyType::EdDSALegacy)
         .can_certify(false)
         .can_sign(true)
         .can_encrypt(false)
