@@ -21,7 +21,7 @@ fn main() {
             if *full {
                 println!(include_str!("../LICENSE"));
             } else {
-                println!(include_str!("res/notice.txt"));
+                println!(include_str!("../res/notice.txt"));
             }
         }
         Commands::Generate {
