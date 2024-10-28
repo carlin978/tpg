@@ -63,7 +63,6 @@ fn main() {
                     todo!("Armor not implemented");
                 } else {
                     if let Some(input_path) = input {
-                        todo!("Broken");
                         let mut file_path = cwd.clone();
                         file_path.push(input_path);
                         if file_path.exists() {
