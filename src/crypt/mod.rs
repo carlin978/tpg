@@ -70,13 +70,30 @@ pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>,
         &[&encryption_key],
     ) {
         Ok(msg) => msg,
-        Err(err) => return Err(err.to_string().into()),
+        Err(err) => return Err(err.to_string()),
     };
     let encrypted_bytes = match encrypted_msg.to_bytes() {
         Ok(bytes) => bytes,
-        Err(err) => return Err(err.to_string().into()),
+        Err(err) => return Err(err.to_string()),
     };
     Ok(encrypted_bytes)
 }
 
-pub fn decrypt_from_binary(key: SignedSecretKey, encrypted: Vec<u8>) {}
+pub fn decrypt_from_binary(key: SignedSecretKey, encrypted: Vec<u8>) -> Result<Vec<u8>, String> {
+    let msg = match Message::from_bytes(encrypted.as_slice()) {
+        Ok(msg) => msg,
+        Err(err) => return Err(err.to_string()),
+    };
+    let (decrypted_msg, key_id) = match msg.decrypt(|| String::new(), &[&key]) {
+        Ok(msg) => msg,
+        Err(err) => return Err(err.to_string()),
+    };
+    let decrypted_bytes = match decrypted_msg.get_content() {
+        Ok(bytes_option) => match bytes_option {
+            Some(bytes) => bytes,
+            None => return Err("Message was encrypted".into()),
+        },
+        Err(err) => return Err(err.to_string()),
+    };
+    Ok(decrypted_bytes)
+}

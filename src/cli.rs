@@ -46,7 +46,21 @@ pub enum Commands {
         #[arg(short, long)]
         output: PathBuf,
         ///Input file
-        #[arg(short = 'f', long)]
+        #[arg(short, long)]
         input: Option<PathBuf>,
+    },
+    Decrypt {
+        ///Key file
+        #[arg(short, long = "key")]
+        key_file: PathBuf,
+        ///ASCII Armor the output
+        #[arg(short, long)]
+        armor: bool,
+        ///File to output encrypted text to
+        #[arg(short, long)]
+        output: PathBuf,
+        ///Input file
+        #[arg(short, long)]
+        input: PathBuf,
     },
 }

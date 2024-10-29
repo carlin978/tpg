@@ -9,7 +9,7 @@ use std::{env, fs};
 mod cli;
 use cli::{Cli, Commands};
 mod crypt;
-use crypt::{encrypt_to_binary, gen_key, read_priv_key};
+use crypt::{decrypt_from_binary, encrypt_to_binary, gen_key, read_priv_key};
 
 fn main() {
     let cwd = env::current_dir().unwrap();
@@ -95,6 +95,38 @@ fn main() {
                             "{}",
                             "You must pass either an input file or text to be encrypted".red()
                         );
+                    }
+                }
+            }
+        }
+        Commands::Decrypt {
+            key_file,
+            armor,
+            output,
+            input,
+        } => {
+            let mut file_path = cwd.clone();
+            file_path.push(key_file);
+            println!("Key: {}", file_path.display());
+            if file_path.exists() {
+                let data = fs::read(file_path.as_path()).expect("Failed to read key file");
+                let key = read_priv_key(data).expect("Failed to read key");
+
+                if *armor {
+                    todo!("Armor not implemented");
+                } else {
+                    let mut file_path = cwd.clone();
+                    file_path.push(input);
+                    let input_contents = fs::read(file_path).expect("Failed to read input file");
+                    match decrypt_from_binary(key, input_contents) {
+                        Ok(decrypted) => {
+                            let mut file_path = cwd.clone();
+                            file_path.push(output);
+                            println!("Output: {}", file_path.display());
+                            fs::write(file_path.as_path(), decrypted.as_slice())
+                                .expect("Failed to Write file");
+                        }
+                        Err(err) => println!("{}", err.red()),
                     }
                 }
             }
