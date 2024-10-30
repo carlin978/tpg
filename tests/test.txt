@@ -1,0 +1,1 @@
+This is some test text to be encrypted, whatever is in here is irrelevant but it must match up with the encrypted file test.asc

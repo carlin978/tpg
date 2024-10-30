@@ -15,6 +15,9 @@ use smallvec::*;
 mod helpers;
 use helpers::*;
 
+#[cfg(test)]
+mod tests;
+
 pub fn gen_key(name: &str, email: &str) -> SignedSecretKey {
     let mut key_params = SecretKeyParamsBuilder::default();
     key_params
