@@ -54,8 +54,18 @@ pub fn read_priv_key(data: Vec<u8>) -> Result<SignedSecretKey, pgp::errors::Erro
     SignedSecretKey::from_bytes(data.as_slice())
 }
 
+pub fn read_armored_priv_key(data: Vec<u8>) -> Result<SignedSecretKey, pgp::errors::Error> {
+    let (key, _) = SignedSecretKey::from_armor_single(data.as_slice())?;
+    Ok(key)
+}
+
 pub fn read_pub_key(data: Vec<u8>) -> Result<SignedPublicKey, pgp::errors::Error> {
     SignedPublicKey::from_bytes(data.as_slice())
+}
+
+pub fn read_armored_pub_key(data: Vec<u8>) -> Result<SignedPublicKey, pgp::errors::Error> {
+    let (key, _) = SignedPublicKey::from_armor_single(data.as_slice())?;
+    Ok(key)
 }
 
 pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>, String> {

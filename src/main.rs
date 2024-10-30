@@ -9,7 +9,9 @@ use std::{env, fs};
 mod cli;
 use cli::{Cli, Commands};
 mod crypt;
-use crypt::{decrypt_from_binary, encrypt_to_binary, gen_key, read_priv_key};
+use crypt::{
+    decrypt_from_binary, encrypt_to_binary, gen_key, read_armored_priv_key, read_priv_key,
+};
 
 fn main() {
     let cwd = env::current_dir().unwrap();
@@ -35,7 +37,13 @@ fn main() {
             file_path.push(output);
             println!("Path: {}", file_path.display());
             if *armor {
-                todo!("Armor not implemented");
+                fs::write(
+                    file_path.as_path(),
+                    key.to_armored_bytes(Default::default())
+                        .expect("Failed to convert key to armored bytes")
+                        .as_slice(),
+                )
+                .expect("Failed to Write");
             } else {
                 fs::write(
                     file_path.as_path(),
@@ -58,29 +66,17 @@ fn main() {
             println!("Key: {}", file_path.display());
             if file_path.exists() {
                 let data = fs::read(file_path.as_path()).expect("Failed to read key file");
-                let key = read_priv_key(data).expect("Failed to read key");
-                if *armor {
-                    todo!("Armor not implemented");
+                let key = if *armor {
+                    read_armored_priv_key(data).expect("Failed to read key")
                 } else {
-                    if let Some(input_path) = input {
-                        let mut file_path = cwd.clone();
-                        file_path.push(input_path);
-                        if file_path.exists() {
-                            let input_content =
-                                fs::read(file_path).expect("Failed to read input file");
-                            match encrypt_to_binary(key.into(), input_content) {
-                                Ok(encrypted) => {
-                                    let mut file_path = cwd.clone();
-                                    file_path.push(output);
-                                    println!("Output: {}", file_path.display());
-                                    fs::write(file_path.as_path(), encrypted.as_slice())
-                                        .expect("Failed to Write file");
-                                }
-                                Err(err) => println!("{}", err.red()),
-                            }
-                        }
-                    } else if let Some(text) = text {
-                        match encrypt_to_binary(key.into(), text.as_bytes().into()) {
+                    read_priv_key(data).expect("Failed to read key")
+                };
+                if let Some(input_path) = input {
+                    let mut file_path = cwd.clone();
+                    file_path.push(input_path);
+                    if file_path.exists() {
+                        let input_content = fs::read(file_path).expect("Failed to read input file");
+                        match encrypt_to_binary(key.into(), input_content) {
                             Ok(encrypted) => {
                                 let mut file_path = cwd.clone();
                                 file_path.push(output);
@@ -90,12 +86,23 @@ fn main() {
                             }
                             Err(err) => println!("{}", err.red()),
                         }
-                    } else {
-                        println!(
-                            "{}",
-                            "You must pass either an input file or text to be encrypted".red()
-                        );
                     }
+                } else if let Some(text) = text {
+                    match encrypt_to_binary(key.into(), text.as_bytes().into()) {
+                        Ok(encrypted) => {
+                            let mut file_path = cwd.clone();
+                            file_path.push(output);
+                            println!("Output: {}", file_path.display());
+                            fs::write(file_path.as_path(), encrypted.as_slice())
+                                .expect("Failed to Write file");
+                        }
+                        Err(err) => println!("{}", err.red()),
+                    }
+                } else {
+                    println!(
+                        "{}",
+                        "You must pass either an input file or text to be encrypted".red()
+                    );
                 }
             }
         }
@@ -110,24 +117,24 @@ fn main() {
             println!("Key: {}", file_path.display());
             if file_path.exists() {
                 let data = fs::read(file_path.as_path()).expect("Failed to read key file");
-                let key = read_priv_key(data).expect("Failed to read key");
-
-                if *armor {
-                    todo!("Armor not implemented");
+                let key = if *armor {
+                    read_armored_priv_key(data).expect("Failed to read key")
                 } else {
-                    let mut file_path = cwd.clone();
-                    file_path.push(input);
-                    let input_contents = fs::read(file_path).expect("Failed to read input file");
-                    match decrypt_from_binary(key, input_contents) {
-                        Ok(decrypted) => {
-                            let mut file_path = cwd.clone();
-                            file_path.push(output);
-                            println!("Output: {}", file_path.display());
-                            fs::write(file_path.as_path(), decrypted.as_slice())
-                                .expect("Failed to Write file");
-                        }
-                        Err(err) => println!("{}", err.red()),
+                    read_priv_key(data).expect("Failed to read key")
+                };
+
+                let mut file_path = cwd.clone();
+                file_path.push(input);
+                let input_contents = fs::read(file_path).expect("Failed to read input file");
+                match decrypt_from_binary(key, input_contents) {
+                    Ok(decrypted) => {
+                        let mut file_path = cwd.clone();
+                        file_path.push(output);
+                        println!("Output: {}", file_path.display());
+                        fs::write(file_path.as_path(), decrypted.as_slice())
+                            .expect("Failed to Write file");
                     }
+                    Err(err) => println!("{}", err.red()),
                 }
             }
         }
