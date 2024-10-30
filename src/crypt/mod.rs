@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Cursor, Read};
 
 use pgp::composed::{
     key::SecretKeyParamsBuilder, KeyType, Message, SignedPublicKey, SignedSecretKey,
@@ -72,7 +72,7 @@ pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>,
         Ok(msg) => msg,
         Err(err) => return Err(err.to_string()),
     };
-    let encrypted_bytes = match encrypted_msg.to_bytes() {
+    let encrypted_bytes = match encrypted_msg.to_armored_bytes(Default::default()) {
         Ok(bytes) => bytes,
         Err(err) => return Err(err.to_string()),
     };
@@ -80,7 +80,8 @@ pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>,
 }
 
 pub fn decrypt_from_binary(key: SignedSecretKey, encrypted: Vec<u8>) -> Result<Vec<u8>, String> {
-    let msg = match Message::from_bytes(encrypted.as_slice()) {
+    let cursor = Cursor::new(encrypted);
+    let (msg, _) = match Message::from_armor_single(cursor) {
         Ok(msg) => msg,
         Err(err) => return Err(err.to_string()),
     };

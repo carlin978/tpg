@@ -39,7 +39,7 @@ pub enum Commands {
         key_file: PathBuf,
         ///Text to be encrypted
         text: Option<String>,
-        ///ASCII Armor the output
+        ///Assume the key has ASCII Armor
         #[arg(short, long)]
         armor: bool,
         ///File to output encrypted text to
@@ -53,7 +53,7 @@ pub enum Commands {
         ///Key file
         #[arg(short, long = "key")]
         key_file: PathBuf,
-        ///ASCII Armor the output
+        ///Assume the key has ASCII Armor
         #[arg(short, long)]
         armor: bool,
         ///File to output encrypted text to
