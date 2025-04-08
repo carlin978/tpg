@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read};
 
+use anyhow::anyhow;
 use pgp::composed::{
     key::SecretKeyParamsBuilder, KeyType, Message, SignedPublicKey, SignedSecretKey,
     SubkeyParamsBuilder,
@@ -18,96 +19,77 @@ use helpers::*;
 #[cfg(test)]
 mod tests;
 
-pub fn gen_key(name: &str, email: &str) -> SignedSecretKey {
+pub fn gen_key(name: &str, email: &str) -> anyhow::Result<SignedSecretKey> {
     let mut key_params = SecretKeyParamsBuilder::default();
     key_params
-        .key_type(KeyType::EdDSALegacy)
-        .can_certify(false)
+        .key_type(KeyType::Ed25519)
+        .can_certify(true)
         .can_sign(true)
-        .can_encrypt(false)
         .primary_user_id(format!("{} <{}>", name, email))
         .subkey(
             SubkeyParamsBuilder::default()
-                .key_type(KeyType::ECDH(ECCCurve::Curve25519))
+                .key_type(KeyType::X25519)
                 .can_encrypt(true)
-                .build()
-                .expect("Failed to create subkey"),
+                .build()?,
         )
         .preferred_symmetric_algorithms(smallvec![SymmetricKeyAlgorithm::AES256])
         .preferred_hash_algorithms(smallvec![HashAlgorithm::SHA2_256])
         .preferred_compression_algorithms(smallvec![CompressionAlgorithm::ZLIB]);
 
-    let secret_key_params = key_params
-        .build()
-        .expect("Must be able to create secret key params");
+    let secret_key_params = key_params.build()?;
 
-    let secret_key = secret_key_params
-        .generate(thread_rng())
-        .expect("Failed to generate a plain key.");
+    let secret_key = secret_key_params.generate(thread_rng())?;
 
-    let passwd_fn = || String::new();
+    let signed_secret_key = secret_key.sign(&mut thread_rng(), || String::new())?;
 
-    let signed_secret_key = secret_key
-        .sign(&mut thread_rng(), passwd_fn)
-        .expect("Must be able to sign its own metadata");
-    signed_secret_key
+    Ok(signed_secret_key)
 }
 
-pub fn read_priv_key(data: Vec<u8>) -> Result<SignedSecretKey, pgp::errors::Error> {
-    SignedSecretKey::from_bytes(data.as_slice())
+pub fn read_priv_key(data: Vec<u8>) -> anyhow::Result<SignedSecretKey> {
+    Ok(SignedSecretKey::from_bytes(data.as_slice())?)
 }
 
-pub fn read_armored_priv_key(data: Vec<u8>) -> Result<SignedSecretKey, pgp::errors::Error> {
+pub fn read_armored_priv_key(data: Vec<u8>) -> anyhow::Result<SignedSecretKey> {
     let (key, _) = SignedSecretKey::from_armor_single(data.as_slice())?;
     Ok(key)
 }
 
-pub fn read_pub_key(data: Vec<u8>) -> Result<SignedPublicKey, pgp::errors::Error> {
-    SignedPublicKey::from_bytes(data.as_slice())
+pub fn read_pub_key(data: Vec<u8>) -> anyhow::Result<SignedPublicKey> {
+    Ok(SignedPublicKey::from_bytes(data.as_slice())?)
 }
 
-pub fn read_armored_pub_key(data: Vec<u8>) -> Result<SignedPublicKey, pgp::errors::Error> {
+pub fn read_armored_pub_key(data: Vec<u8>) -> anyhow::Result<SignedPublicKey> {
     let (key, _) = SignedPublicKey::from_armor_single(data.as_slice())?;
     Ok(key)
 }
 
-pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> Result<Vec<u8>, String> {
-    let encryption_key = match get_encryption_key(&key) {
-        Some(key) => key,
-        None => return Err("Key doesn't have encryption key".into()),
-    };
+pub fn encrypt_to_binary(key: SignedPublicKey, data: Vec<u8>) -> anyhow::Result<Vec<u8>> {
+    let encryption_key =
+        get_encryption_key(&key).ok_or(anyhow!("Key doesn't have encryption key"))?;
+
     let msg = Message::new_literal_bytes("", data.as_slice());
-    let encrypted_msg = match msg.encrypt_to_keys_seipdv1(
+
+    let encrypted_msg = msg.encrypt_to_keys_seipdv1(
         thread_rng(),
         SymmetricKeyAlgorithm::AES256,
         &[&encryption_key],
-    ) {
-        Ok(msg) => msg,
-        Err(err) => return Err(err.to_string()),
-    };
-    let encrypted_bytes = match encrypted_msg.to_armored_bytes(Default::default()) {
-        Ok(bytes) => bytes,
-        Err(err) => return Err(err.to_string()),
-    };
+    )?;
+
+    let encrypted_bytes = encrypted_msg.to_armored_bytes(Default::default())?;
+
     Ok(encrypted_bytes)
 }
 
-pub fn decrypt_from_binary(key: SignedSecretKey, encrypted: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn decrypt_from_binary(key: SignedSecretKey, encrypted: Vec<u8>) -> anyhow::Result<Vec<u8>> {
     let cursor = Cursor::new(encrypted);
-    let (msg, _) = match Message::from_armor_single(cursor) {
-        Ok(msg) => msg,
-        Err(err) => return Err(err.to_string()),
-    };
-    let (decrypted_msg, key_id) = match msg.decrypt(|| String::new(), &[&key]) {
-        Ok(msg) => msg,
-        Err(err) => return Err(err.to_string()),
-    };
-    let decrypted_bytes = match decrypted_msg.get_content() {
-        Ok(bytes_option) => match bytes_option {
-            Some(bytes) => bytes,
-            None => return Err("Message was encrypted".into()),
-        },
-        Err(err) => return Err(err.to_string()),
-    };
+
+    let (msg, _) = Message::from_armor_single(cursor)?;
+
+    let (decrypted_msg, key_id) = msg.decrypt(|| String::new(), &[&key])?;
+
+    let decrypted_bytes = decrypted_msg
+        .get_content()?
+        .ok_or(anyhow!("bytes are empty"))?;
+
     Ok(decrypted_bytes)
 }

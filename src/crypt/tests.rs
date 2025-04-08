@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn generate_key() {
-    let key = gen_key("Test", "test@example.com");
+    let key = gen_key("Test", "test@example.com").unwrap();
 }
 
 #[test]

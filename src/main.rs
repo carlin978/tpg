@@ -32,7 +32,7 @@ fn main() {
             armor,
             output,
         } => {
-            let key = gen_key(name, email);
+            let key = gen_key(name, email).expect("Failed to generate key");
             let mut file_path = cwd.clone();
             file_path.push(output);
             println!("Path: {}", file_path.display());
@@ -84,7 +84,7 @@ fn main() {
                                 fs::write(file_path.as_path(), encrypted.as_slice())
                                     .expect("Failed to Write file");
                             }
-                            Err(err) => println!("{}", err.red()),
+                            Err(err) => println!("{}", err.to_string().red()),
                         }
                     }
                 } else if let Some(text) = text {
@@ -96,7 +96,7 @@ fn main() {
                             fs::write(file_path.as_path(), encrypted.as_slice())
                                 .expect("Failed to Write file");
                         }
-                        Err(err) => println!("{}", err.red()),
+                        Err(err) => println!("{}", err.to_string().red()),
                     }
                 } else {
                     println!(
@@ -118,10 +118,11 @@ fn main() {
             if file_path.exists() {
                 let data = fs::read(file_path.as_path()).expect("Failed to read key file");
                 let key = if *armor {
-                    read_armored_priv_key(data).expect("Failed to read key")
+                    read_armored_priv_key(data)
                 } else {
-                    read_priv_key(data).expect("Failed to read key")
-                };
+                    read_priv_key(data)
+                }
+                .expect("Failed to read key");
 
                 let mut file_path = cwd.clone();
                 file_path.push(input);
@@ -134,7 +135,7 @@ fn main() {
                         fs::write(file_path.as_path(), decrypted.as_slice())
                             .expect("Failed to Write file");
                     }
-                    Err(err) => println!("{}", err.red()),
+                    Err(err) => println!("{}", err.to_string().red()),
                 }
             }
         }
